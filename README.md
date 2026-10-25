@@ -37,3 +37,7 @@ npm test
 > **兼容性说明**：兼容 DeepSeek Harness `0.2.1` 系列（范围 `>=0.2.1-0 <0.2.2-0`，已在 `0.2.1-rc.2` 与 `0.2.1-rc.3` 验证）。
 >
 > 单元测试依赖 DSH 宿主内部模块。运行 `npm test` 时需设置环境变量 `DSH_HOST_MODULES` 指向宿主运行时的 `node_modules`，桌面版可通过宿主 Electron Node 模式配合 `test/host-loader.mjs` 解析依赖。
+
+## 致谢
+
+- 感谢 [Unintendedz/dsh-conversation-tree](https://github.com/Unintendedz/dsh-conversation-tree)（MIT 许可）。本插件的树形界面布局、部分交互与分支导航基于其 0.8.0 版本改编，许可证见 [LICENSES/dsh-conversation-tree-MIT.txt](LICENSES/dsh-conversation-tree-MIT.txt)，归属细节见 [NOTICE.md](NOTICE.md)。
