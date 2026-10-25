@@ -1,11 +1,9 @@
-# Implementation notes
+# Attribution
 
-The current message editor, tree interface, and branch-navigation implementation were rewritten by isolated implementers from behavioral specifications and host contracts, without access to the implementations being replaced. Earlier repository revisions retain their original source notices; this statement describes the current implementation.
+The React interaction layout and message-tree rendering are adapted from Unintendedz/dsh-conversation-tree v0.8.0 (commit f012b1701dae239ab4f09a97dedd78c9fa5aa071), under MIT; see LICENSE.
 
-Historical edit-record identifiers are recognized solely for data compatibility. The original editor and conversation-tree packages are neither imported nor required.
+The message-edit projection was independently reimplemented from the DSH Session projection contract and behavioral requirements. Historical edit-record identifiers are recognized solely for data compatibility; the original editor package is neither imported nor required.
 
 The DSH 0.2.1 host integration, scoped prefix reconstruction, branch provenance and compatibility validation are implemented locally for this plugin.
-
-React and the DSH client/session APIs are supplied by the host runtime and are not bundled in this plugin's client build.
 
 The optional Billion integration implements its fork-v2 identity contract and decorates its live native request hook in memory. It does not bundle the compression engine or modify the installed Billion package. Billion remains a separately installed plugin: https://github.com/ranxianglei/billion-context.
