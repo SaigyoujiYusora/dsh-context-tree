@@ -1,12 +1,12 @@
 {
   "name": "dsh-context-tree",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "description": "按楼层创建独立尝试、编辑分支并切换整棵上下文树",
   "license": "MIT",
   "main": "lib/index.js",
   "exports": {".": "./lib/index.js", "./client": "./lib/client.js", "./package.json": "./package.json"},
-  "files": ["lib", "cordis.patch.yml", "README.md", "NOTICE.md", "LICENSE.dsh-edit-turn"],
+  "files": ["lib", "cordis.patch.yml", "README.md", "NOTICE.md"],
   "repository": {"type": "git", "url": "git+https://github.com/SaigyoujiYusora/dsh-context-tree.git"},
   "engines": {"node": ">=24", "dsh": ">=0.2.1-0 <0.2.2-0"},
   "dsh": {
