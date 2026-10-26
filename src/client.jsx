@@ -149,7 +149,6 @@ const css = `
 `
 
 function installStyles() {
-  if (typeof document === 'undefined') return
   const id = 'dsh-context-tree/client.css'
   if (document.querySelector(`style[data-plugin-css="${id}"]`) !== null) return
   const tag = document.createElement('style')
@@ -524,7 +523,6 @@ export function UserBranchActions({ matched, turn: turnOwner, sessionId, useSess
   const [editing, setEditing] = useState(false)
   const mutation = useBranchMutation({ sessionId, turn, createBranch, openBranch, t })
   useEffect(() => {
-    if (typeof document === 'undefined') return
     setSeat(findUserActionSeat(document, userNodeKey))
     setEditorSeat(findMessageEditSeat(document, userNodeKey))
   }, [userNodeKey])
@@ -692,10 +690,7 @@ export const inject = [
 ]
 
 export function apply(ctx) {
-  try { return install(ctx) } catch (error) {
-    console.error('dsh-context-tree initialization failed', error)
-    throw error
-  }
+  return install(ctx)
 }
 
 function install(ctx) {
@@ -706,8 +701,12 @@ function install(ctx) {
   let pendingChatSession = null
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-context-tree: dictionaries')
   const openBranch = async sessionId => {
-    if (ctx.sessions.list.getSnapshot().byId[sessionId] === undefined) await ctx.sessions.refresh()
-    if (ctx.sessions.list.getSnapshot().byId[sessionId] === undefined) {
+    let sessions = ctx.sessions.list.getSnapshot()
+    if (sessions.byId[sessionId] === undefined) {
+      await ctx.sessions.refresh()
+      sessions = ctx.sessions.list.getSnapshot()
+    }
+    if (sessions.byId[sessionId] === undefined) {
       throw new Error(`new branch "${sessionId}" is not available in the session list`)
     }
     pendingChatSession = sessionId

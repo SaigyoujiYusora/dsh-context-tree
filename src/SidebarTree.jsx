@@ -21,14 +21,14 @@ export function wrapSidebar(NativeSidebar, connection) {
       titleLoader.current = loader;
       return () => { loader.dispose(); if (titleLoader.current === loader) titleLoader.current = null; };
     }, [connection]);
-    const missingTitles = raw.ids.filter(id => !raw.byId[id]?.blank && !raw.byId[id]?.title?.trim());
-    const titleIdentity = JSON.stringify(missingTitles.map(id => [id, raw.byId[id]?.createdAt, raw.byId[id]?.updatedAt]));
+    const missingTitles = raw.ids.filter(id => !raw.byId[id].blank && !raw.byId[id].title?.trim());
+    const titleIdentity = JSON.stringify(missingTitles.map(id => [id, raw.byId[id].updatedAt]));
     useEffect(() => {
       let disposed = false;
       const loader = titleLoader.current;
       const load = async () => {
         if (!loader) return;
-        const recovered = await loader.load(missingTitles.map(id => ({ id, updatedAt: raw.byId[id]?.updatedAt })));
+        const recovered = await loader.load(missingTitles.map(id => ({ id, updatedAt: raw.byId[id].updatedAt })));
         if (!disposed) setTitles(previous => ({ ...previous, ...recovered }));
       };
       void load().catch(error => { if (!disposed) console.warn('context-tree title recovery unavailable', error); });

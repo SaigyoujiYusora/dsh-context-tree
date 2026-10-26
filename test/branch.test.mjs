@@ -85,11 +85,11 @@ test('swipe respects late edits to the target prompt',()=>{
  assert.deepEqual(texts(child(p)),['Q1','A1']);
 });
 test('tree preserves source and two attempts at the same floor with nested navigation',()=>{
- const source=fixture(); const sources=new Map([['session-source',{header:source.header,events:source.snapshotEvents(),messages:displayMessages(source.snapshotEvents(),projections)}]]);
+ const source=fixture(); const sources=new Map([['session-source',{header:source.header,events:source.snapshotEvents(),messages:displayMessages(source.snapshotEvents())}]]);
  for(let i=1;i<=2;i++){
   const p=planBranch(source.snapshotEvents(),{turn:2,action:'edit-assistant',text:'variant '+i},projections);
   const c=child(p,'session-v'+i);
-  sources.set(c.id,{header:c.header,events:c.snapshotEvents(),inheritedEventCount:c.inheritedEventCount,branch:{parentId:source.id,turn:2,role:'assistant',action:'edit-assistant'},messages:displayMessages(c.snapshotEvents(),projections)});
+  sources.set(c.id,{header:c.header,events:c.snapshotEvents(),inheritedEventCount:c.inheritedEventCount,branch:{parentId:source.id,turn:2,role:'assistant',action:'edit-assistant'},messages:displayMessages(c.snapshotEvents())});
  }
  const nav=buildBranchNavigation(sources,'session-v2');
  assert.deepEqual(nav.assistant[2].ids,['session-source','session-v1','session-v2']);
@@ -105,11 +105,11 @@ test('tree shared nodes distinguish attachments even when visible text is equal'
  assert.equal(buildBranchNavigation(sources,'session-b').tree.children.length,2);
 });
 test('a fork at an earlier floor does not inherit unrelated later version groups',()=>{
- const source=fixture();const base={header:source.header,events:source.snapshotEvents(),messages:displayMessages(source.snapshotEvents(),projections)};
+ const source=fixture();const base={header:source.header,events:source.snapshotEvents(),messages:displayMessages(source.snapshotEvents())};
  const sources=new Map([['session-source',base]]);
  for(const [id,turn]of [['session-b',2],['session-c',1]]){
   const p=planBranch(source.snapshotEvents(),{turn,action:'edit-assistant',text:id},projections);const c=child(p,id);
-  sources.set(id,{header:c.header,events:c.snapshotEvents(),branch:{parentId:source.id,turn,role:'assistant',action:'edit-assistant'},messages:displayMessages(c.snapshotEvents(),projections)});
+  sources.set(id,{header:c.header,events:c.snapshotEvents(),branch:{parentId:source.id,turn,role:'assistant',action:'edit-assistant'},messages:displayMessages(c.snapshotEvents())});
  }
  assert.equal(buildBranchNavigation(sources,'session-c').assistant[2],undefined);
  assert.ok(buildBranchNavigation(sources,'session-c').assistant[1]);
@@ -117,7 +117,7 @@ test('a fork at an earlier floor does not inherit unrelated later version groups
 test('compacted historical floors remain available in the tree',()=>{
  const s=fixture();const nodes=s.surface.nodes;
  s.append('developer/message',{turn:3,step:1,message:{id:'summary',role:'developer',source:{kind:'compaction'},content:[{type:'text',text:'summary'}]}},{surfaceOp:{op:'replace',startSeq:nodes[0],endSeq:nodes.at(-1)},sourceEventSeqs:nodes});
- assert.deepEqual(displayMessages(s.snapshotEvents(),projections).map(m=>m.text),['Q1','A1','Q2','A2','Q3','A3']);
+ assert.deepEqual(displayMessages(s.snapshotEvents()).map(m=>m.text),['Q1','A1','Q2','A2','Q3','A3']);
 });
 
 test('intermediate tool-step narration is not exposed as the final-answer editor',()=>{
@@ -129,6 +129,6 @@ test('intermediate tool-step narration is not exposed as the final-answer editor
   s.append('step/end',{turn:1,step});
  }
  s.append('turn/end',{turn:1,reason:{kind:'completed'}});
- assert.deepEqual(displayMessages(s.snapshotEvents(),projections).map(m=>m.text),['Q','final answer']);
+ assert.deepEqual(displayMessages(s.snapshotEvents()).map(m=>m.text),['Q','final answer']);
  assert.equal(s.snapshotEvents().filter(e=>e.type==='assistant/message').length,2);
 });

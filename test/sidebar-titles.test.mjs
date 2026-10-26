@@ -25,15 +25,15 @@ test('recovers saved titles for cold sessions including imported IDs without ope
 
 test('title fallback preserves live titles, blank rows, lifecycle boundaries and source state', () => {
   const rows = [
-    { id: 'cold', createdAt: 1, cwd: 'test' },
-    { id: 'renamed', createdAt: 1, cwd: 'test', title: 'New title' },
-    { id: 'recreated', createdAt: 2, cwd: 'test' },
-    { id: 'blank', createdAt: 1, cwd: 'test', blank: true },
-    { id: 'unnamed', createdAt: 1, cwd: 'test' },
+    { id: 'cold', updatedAt: 1, cwd: 'test' },
+    { id: 'renamed', updatedAt: 1, cwd: 'test', title: 'New title' },
+    { id: 'recreated', updatedAt: 2, cwd: 'test' },
+    { id: 'blank', updatedAt: 1, cwd: 'test', blank: true },
+    { id: 'unnamed', updatedAt: 1, cwd: 'test' },
   ];
   const source = { ids: rows.map(row => row.id), byId: Object.fromEntries(rows.map(row => [row.id, row])) };
   const before = structuredClone(source);
-  const titles = Object.fromEntries(['cold', 'renamed', 'recreated', 'blank'].map(id => [id, { createdAt: 1, title: 'Saved title' }]));
+  const titles = Object.fromEntries(['cold', 'renamed', 'recreated', 'blank'].map(id => [id, { createdAt: 1, listUpdatedAt: 1, title: 'Saved title' }]));
   const result = projectSidebar(source, {}, {}, [], titles);
   assert.equal(result.list.byId.cold.title, 'Saved title');
   assert.equal(result.list.byId.renamed.title, 'New title');
@@ -43,10 +43,10 @@ test('title fallback preserves live titles, blank rows, lifecycle boundaries and
 
 test('a grouped root retains its recovered title', () => {
   const source = { ids: ['root', 'child'], byId: {
-    root: { id: 'root', createdAt: 1, cwd: 'test' },
-    child: { id: 'child', createdAt: 2, cwd: 'test', title: 'Child title' },
+    root: { id: 'root', updatedAt: 1, cwd: 'test' },
+    child: { id: 'child', updatedAt: 2, cwd: 'test', title: 'Child title' },
   } };
-  const result = projectSidebar(source, { child: 'root' }, {}, [], { root: { createdAt: 1, title: 'Root title' } });
+  const result = projectSidebar(source, { child: 'root' }, {}, [], { root: { createdAt: 1, listUpdatedAt: 1, title: 'Root title' } });
   assert.deepEqual(result.list.ids, ['root']);
   assert.equal(result.list.byId.root.title, 'Root title');
 });

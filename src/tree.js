@@ -21,20 +21,20 @@ function nodeTurn(node) {
     : undefined
 }
 
-function joinedText(blocks, kind, field = 'text') {
+function joinedText(blocks, kind) {
   return blocks
-    .filter(block => block?.[kind.key] === kind.value && typeof block?.[field] === 'string')
-    .map(block => block[field].trim())
+    .filter(block => block[kind.key] === kind.value && typeof block.text === 'string')
+    .map(block => block.text.trim())
     .filter(Boolean)
     .join('\n\n')
 }
 
 /** Visible user prose for a completed turn, excluding attachments. */
 export function turnUserText(snapshot, turn) {
-  const keys = snapshot?.chat?.locations?.getTurn?.(turn) ?? []
+  const keys = snapshot.chat.locations.getTurn(turn)
   for (const key of keys) {
     const node = snapshot.chat.nodes.get(key)
-    if (node?.kind === 'user' && nodeTurn(node) === turn && Array.isArray(node.data?.content)) {
+    if (node.kind === 'user' && nodeTurn(node) === turn) {
       return joinedText(node.data.content, { key: 'type', value: 'text' })
     }
   }
@@ -43,23 +43,19 @@ export function turnUserText(snapshot, turn) {
 
 /** Chat anchor key for the user bubble that owns a completed turn. */
 export function turnUserNodeKey(snapshot, turn) {
-  const keys = snapshot?.chat?.locations?.getTurn?.(turn) ?? []
+  const keys = snapshot.chat.locations.getTurn(turn)
   for (const key of keys) {
     const node = snapshot.chat.nodes.get(key)
-    if (node?.kind === 'user' && nodeTurn(node) === turn) return key
+    if (node.kind === 'user' && nodeTurn(node) === turn) return key
   }
-  return undefined
 }
 
 function assistantMessageNode(snapshot, messageId) {
-  const nodes = snapshot?.chat?.nodes?.values?.()
-  if (nodes === undefined) return undefined
-  for (const node of nodes) {
-    if (node?.kind === 'assistant-step' && node.data?.finalNode?.messageId === messageId) {
+  for (const node of snapshot.chat.nodes.values()) {
+    if (node.kind === 'assistant-step' && node.data.finalNode?.messageId === messageId) {
       return node
     }
   }
-  return undefined
 }
 
 /** Turn addressed by the finalized assistant message action strip. */
@@ -74,9 +70,8 @@ export function assistantMessageNodeKey(snapshot, messageId) {
 
 /** Locate one exact rendered Chat row by its stable conversation node key. */
 export function findMessageEditSeat(root, nodeKey) {
-  if (root?.querySelectorAll === undefined || typeof nodeKey !== 'string') return null
   for (const row of root.querySelectorAll('[data-chat-anchor-key]')) {
-    if (row.getAttribute?.('data-chat-anchor-key') === nodeKey) return row
+    if (row.getAttribute('data-chat-anchor-key') === nodeKey) return row
   }
   return null
 }
@@ -84,20 +79,18 @@ export function findMessageEditSeat(root, nodeKey) {
 /** Locate the native IconActions row below one exact user message bubble. */
 export function findUserActionSeat(root, nodeKey) {
   return findMessageEditSeat(root, nodeKey)
-    ?.querySelector?.('[data-slot="conversation.chat.node"]')?.firstElementChild?.lastElementChild ?? null
+    ?.querySelector('[data-slot="conversation.chat.node"]')?.firstElementChild?.lastElementChild ?? null
 }
 
 /** Final visible assistant prose for a completed turn. */
 export function turnAssistantText(snapshot, turn) {
-  const keys = snapshot?.chat?.locations?.getTurn?.(turn) ?? []
+  const keys = snapshot.chat.locations.getTurn(turn)
   let closing
   for (const key of keys) {
     const node = snapshot.chat.nodes.get(key)
-    if (node?.kind !== 'assistant-step' || nodeTurn(node) !== turn
-      || node.data?.finalNode === undefined || !Array.isArray(node.data?.blocks)) continue
+    if (node.kind !== 'assistant-step' || nodeTurn(node) !== turn
+      || node.data.finalNode === undefined || !Array.isArray(node.data.blocks)) continue
     if (closing === undefined || node.data.finalNode.seq > closing.finalNode.seq) closing = node.data
   }
-  return closing === undefined
-    ? ''
-    : joinedText(closing.blocks, { key: 'kind', value: 'text' })
+  return closing === undefined ? '' : joinedText(closing.blocks, { key: 'kind', value: 'text' })
 }
