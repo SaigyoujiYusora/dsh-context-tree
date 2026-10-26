@@ -13,6 +13,24 @@ export function wrapSidebar(NativeSidebar, connection) {
     const archived = props.useWorkspaces(state => state.archivedSessionIds);
     const [parents, setParents] = useState(() => readRecord(KEY + '.families'));
     const [selected, setSelected] = useState(() => readRecord(KEY));
+    const [titles, setTitles] = useState({});
+    const missingTitles = raw.ids.filter(id => !raw.byId[id]?.blank && !raw.byId[id]?.title?.trim());
+    const titleIdentity = JSON.stringify(missingTitles.map(id => [id, raw.byId[id]?.createdAt, raw.byId[id]?.updatedAt]));
+    useEffect(() => {
+      let disposed = false;
+      const controller = new AbortController();
+      const load = async () => {
+        for (let offset = 0; offset < missingTitles.length && !disposed; offset += 64) {
+          const result = await connection.rpc.call('/dsh-context-tree', 'sidebar-titles', { ids: missingTitles.slice(offset, offset + 64) }, controller.signal);
+          if (!disposed && result?.ok) {
+            const recovered = Object.fromEntries(Object.entries(result.value.titles).map(([id, value]) => [id, { ...value, listUpdatedAt: raw.byId[id]?.updatedAt }]));
+            setTitles(previous => ({ ...previous, ...recovered }));
+          }
+        }
+      };
+      void load().catch(error => { if (!disposed) console.warn('context-tree title recovery unavailable', error); });
+      return () => { disposed = true; controller.abort(); };
+    }, [titleIdentity, connection]);
     const identity = raw.ids.join('|');
     useEffect(() => {
       let disposed = false;
@@ -25,7 +43,7 @@ export function wrapSidebar(NativeSidebar, connection) {
       }).catch(error => { if (!disposed) console.warn('context-tree sidebar grouping unavailable', error); });
       return () => { disposed=true;controller.abort(); };
     }, [identity]);
-    const projected = useMemo(() => projectSidebar(raw, parents, selected, archived), [raw, parents, selected, archived]);
+    const projected = useMemo(() => projectSidebar(raw, parents, selected, archived, titles), [raw, parents, selected, archived, titles]);
     useEffect(() => {
       const active = raw.ids.find(id => (raw.byId[id]?.retainedBy?.mainView ?? 0) > 0);
       const root = projected.rootOf[active];

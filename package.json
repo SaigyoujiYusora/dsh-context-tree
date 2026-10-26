@@ -1,6 +1,6 @@
 {
   "name": "dsh-context-tree",
-  "version": "0.1.6",
+  "version": "0.1.8",
   "type": "module",
   "description": "按楼层创建独立尝试、编辑分支并切换整棵上下文树",
   "license": "MIT",

@@ -1,5 +1,5 @@
 // Sidebar-only projection. Never replace the shared Session registry.
-export function projectSidebar(list, parents, selected = {}, archived = []) {
+export function projectSidebar(list, parents, selected = {}, archived = [], titles = {}) {
   const archivedSet = new Set(archived);
   const rootOf = {};
   const families = new Map();
@@ -18,6 +18,14 @@ export function projectSidebar(list, parents, selected = {}, archived = []) {
     families.get(root).push(id);
   }
   const byId = { ...list.byId };
+  for (const id of list.ids) {
+    const row = byId[id], saved = titles[id];
+    // Native list summaries expose updatedAt, but not createdAt. Bind the
+    // fallback to the requested list revision and reject an older lifecycle.
+    const current = row?.createdAt !== undefined ? row.createdAt === saved?.createdAt
+      : row?.updatedAt === saved?.listUpdatedAt && row?.updatedAt >= saved?.createdAt;
+    if (!row?.blank && !row?.title?.trim() && saved?.title?.trim() && current) byId[id] = { ...row, title: saved.title };
+  }
   const targets = {};
   for (const [root, ids] of families) {
     if (ids.length < 2) continue;
