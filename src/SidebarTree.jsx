@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { projectSidebar, projectStatuses } from './sidebar-tree.js';
+import { createSidebarTitleLoader } from './sidebar-title-loader.js';
 
 const KEY = 'dsh-context-tree.sidebar-selection.v1';
 function readRecord(key) {
@@ -14,22 +15,24 @@ export function wrapSidebar(NativeSidebar, connection) {
     const [parents, setParents] = useState(() => readRecord(KEY + '.families'));
     const [selected, setSelected] = useState(() => readRecord(KEY));
     const [titles, setTitles] = useState({});
+    const titleLoader = useRef(null);
+    useEffect(() => {
+      const loader = createSidebarTitleLoader(connection);
+      titleLoader.current = loader;
+      return () => { loader.dispose(); if (titleLoader.current === loader) titleLoader.current = null; };
+    }, [connection]);
     const missingTitles = raw.ids.filter(id => !raw.byId[id]?.blank && !raw.byId[id]?.title?.trim());
     const titleIdentity = JSON.stringify(missingTitles.map(id => [id, raw.byId[id]?.createdAt, raw.byId[id]?.updatedAt]));
     useEffect(() => {
       let disposed = false;
-      const controller = new AbortController();
+      const loader = titleLoader.current;
       const load = async () => {
-        for (let offset = 0; offset < missingTitles.length && !disposed; offset += 64) {
-          const result = await connection.rpc.call('/dsh-context-tree', 'sidebar-titles', { ids: missingTitles.slice(offset, offset + 64) }, controller.signal);
-          if (!disposed && result?.ok) {
-            const recovered = Object.fromEntries(Object.entries(result.value.titles).map(([id, value]) => [id, { ...value, listUpdatedAt: raw.byId[id]?.updatedAt }]));
-            setTitles(previous => ({ ...previous, ...recovered }));
-          }
-        }
+        if (!loader) return;
+        const recovered = await loader.load(missingTitles.map(id => ({ id, updatedAt: raw.byId[id]?.updatedAt })));
+        if (!disposed) setTitles(previous => ({ ...previous, ...recovered }));
       };
       void load().catch(error => { if (!disposed) console.warn('context-tree title recovery unavailable', error); });
-      return () => { disposed = true; controller.abort(); };
+      return () => { disposed = true; };
     }, [titleIdentity, connection]);
     const identity = raw.ids.join('|');
     useEffect(() => {

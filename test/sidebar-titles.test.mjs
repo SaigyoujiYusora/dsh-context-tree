@@ -19,7 +19,7 @@ test('recovers saved titles for cold sessions including imported IDs without ope
   } };
   const result = await readSidebarTitles(ctx, { ids: ['session-old', 'import-old', 'blank', 'unreadable', 'unknown', 'session-old'] });
   assert.deepEqual(requested, ['session-old', 'import-old', 'blank', 'unreadable']);
-  assert.deepEqual({ ...result.titles }, { 'session-old': { title: 'Saved title', createdAt: 1 }, 'import-old': { title: 'Imported title', createdAt: 2 } });
+  assert.deepEqual({ ...result.titles }, { 'session-old': { title: 'Saved title', createdAt: 1 }, 'import-old': { title: 'Imported title', createdAt: 2 }, blank: { title: null, createdAt: 3 } });
   await assert.rejects(readSidebarTitles(ctx, { ids: Array(65).fill('session-old') }), /Invalid/);
 });
 
