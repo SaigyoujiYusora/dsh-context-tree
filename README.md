@@ -25,9 +25,30 @@
 
 - **分支数据独立**：各分支作为原生独立 Session 保存，采用追加式记录，历史可完整复现与跨重启恢复。
 - **工作区与副作用不回滚**：切换分支仅切换会话对话上下文，已修改的工作区文件、已执行工具的外部改动不会自动回滚。
-- **长期记忆共享**：Mnemon 长期记忆及持久规则沿用现有插件行为继续共享。
+- **插件兼容**：兼容 Mnemon 的共享长期记忆，并为 Billion 提供未改动前文的摘要复用适配。
 - **生成锁约束**：当前分支正在生成时，需等待完成或停止后再发起新尝试；其他已完成分支仍可正常打开。
-- **压缩兼容与可选集成**：未安装 Billion 时分支与编辑功能正常运作；若环境中启用了 Billion，本插件提供发送前的前文对齐兼容，不修改其磁盘文件。仅在满足条件时生效（本插件创建的子分支、标准 OpenAI 聊天接口、一致前缀且未被编辑破坏）；若修改了前文正文或工具参数，将不继承已被覆盖的摘要块。旧分支已有的独立快照优先保留。该适配依赖外部上游接口稳定，不作为全协议或多模态的通用承诺。
+
+## 安装
+
+需要 Node.js 24+、Git 和 DeepSeek Harness 0.2.1 系列桌面版。
+
+完全退出 DSH 后，在 PowerShell 7 中执行：
+
+```powershell
+git clone https://github.com/SaigyoujiYusora/dsh-context-tree.git
+Set-Location "./dsh-context-tree"
+npm ci
+$pluginPackage = npm pack --ignore-scripts --silent
+dsh plugin --profile desktop add "./$pluginPackage" --ignore-scripts
+```
+
+`npm ci` 会自动构建客户端。安装完成后重新启动 DSH。
+
+如果找不到 `dsh` 命令，将最后一行替换为 Windows 默认安装路径：
+
+```powershell
+& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "./$pluginPackage" --ignore-scripts
+```
 
 ## 开发与测试
 
