@@ -30,29 +30,30 @@
 
 ## 安装
 
-需要 Node.js 24+、Git 和 DeepSeek Harness 0.2.1 系列桌面版。
+适用于 DeepSeek Harness 0.2.1 系列桌面版，使用发布包无需安装 Node.js、Git 或自行编译。
 
-完全退出 DSH 后，在 PowerShell 7 中执行：
+从 [GitHub Releases](https://github.com/SaigyoujiYusora/dsh-context-tree/releases/latest) 下载 `dsh-context-tree-0.1.14.tgz`。完全退出 DSH 后，在下载目录打开 PowerShell 7，执行：
 
 ```powershell
-git clone https://github.com/SaigyoujiYusora/dsh-context-tree.git
-Set-Location "./dsh-context-tree"
-npm ci
-$pluginPackage = npm pack --ignore-scripts --silent
-dsh plugin --profile desktop add "./$pluginPackage" --ignore-scripts
+dsh plugin --profile desktop add "./dsh-context-tree-0.1.14.tgz" --ignore-scripts
 ```
 
-`npm ci` 会自动构建客户端。安装完成后重新启动 DSH。
+安装完成后重新启动 DSH。
 
 如果找不到 `dsh` 命令，将最后一行替换为 Windows 默认安装路径：
 
 ```powershell
-& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "./$pluginPackage" --ignore-scripts
+& "$env:LOCALAPPDATA/Programs/DeepSeek Harness/resources/runtime/cli/bin/dsh.cmd" plugin --profile desktop add "./dsh-context-tree-0.1.14.tgz" --ignore-scripts
 ```
 
 ## 开发与测试
 
-```bash
+从源码构建需要 Node.js 24+ 和 Git：
+
+```powershell
+git clone https://github.com/SaigyoujiYusora/dsh-context-tree.git
+Set-Location "./dsh-context-tree"
+
 # 安装依赖并自动构建客户端注入脚本
 npm ci
 
@@ -61,6 +62,10 @@ npm run build
 
 # 运行测试套件
 npm test
+
+# 打包并安装（先完全退出 DSH）
+$pluginPackage = npm pack --ignore-scripts --silent
+dsh plugin --profile desktop add "./$pluginPackage" --ignore-scripts
 ```
 
 > **兼容性说明**：兼容 DeepSeek Harness `0.2.1` 系列（范围 `>=0.2.1-0 <0.2.2-0`，已在 `0.2.1-rc.2` 与 `0.2.1-rc.3` 验证）。
