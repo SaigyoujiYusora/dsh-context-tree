@@ -5,7 +5,7 @@ import { createBranch } from '../lib/index.js';
 import { editorProjections, BRANCH_RECORD } from '../lib/branch-core.js';
 const sourceId='session-11111111-1111-4111-8111-111111111111';
 const operationId='22222222-2222-4222-8222-222222222222';
-function fixture(){
+function fixture({steering=false}={}){
  const projections=editorProjections();
  const source=Session.create(sourceId,undefined,undefined,0,projections);
  for(const [type,data]of [['permission/preset',{preset:'danger-full-access'}],['sandbox/mode',{mode:'danger-full-access'}],['approval/policy',{policy:'never'}]])source.append(type,data);
@@ -14,7 +14,11 @@ function fixture(){
   source.append('user/message',{id:'u'+turn,role:'user',source:{kind:'user'},content:[{type:'text',text:'question '+turn}]},{surfaceOp:'append'});
   source.append('step/start',{turn,step:1});
   source.append('assistant/message',{turn,step:1,message:{id:'a'+turn,role:'assistant',source:{kind:'model',provider:'test',model:'test'},content:[{type:'text',text:'answer '+turn}]},stream:[]},{surfaceOp:'append'});
-  source.append('step/end',{turn,step:1});source.append('turn/end',{turn,reason:{kind:'completed'}});
+  source.append('step/end',{turn,step:1});
+  if(steering&&turn===2){
+   for(const id of ['steer1','steer2'])source.append('user/message',{id,role:'user',source:{kind:'user'},content:[{type:'text',text:id}]},{surfaceOp:'append'});
+  }
+  source.append('turn/end',{turn,reason:{kind:'completed'}});
  }
  for(const [type,data]of [['permission/preset',{preset:'read-only'}],['sandbox/mode',{mode:'read-only'}],['approval/policy',{policy:'ask'}]])source.append(type,data);
  const sessions=new Map([[sourceId,source]]);const agents=new Map();const sent=[];const counts={created:0,cleared:0,flushed:0,disposed:0};
@@ -34,6 +38,16 @@ function fixture(){
  return{ctx,source,sessions,sent,counts,setFailure:fn=>{failure=fn;},rejectQueue:()=>{queueFailure=true;}};
 }
 const payload={sessionId:sourceId,operationId,action:'regenerate',turn:2,modelSelection:{provider:'test',model:'test',reasoningEffort:'high'}};
+test('editing a prompt queues only that prompt, never its later steering',async()=>{
+ const f=fixture({steering:true});const before=JSON.stringify(f.source.snapshotEvents());
+ const messageSeq=f.source.snapshotEvents().find(e=>e.type==='user/message'&&e.data.id==='u2').seq;
+ const result=await createBranch(f.ctx,{...payload,action:'edit-user',messageSeq,text:'revised question'});
+ assert.equal(f.sent.length,1);
+ assert.equal(f.sent[0].message.content[0].text,'revised question');
+ assert.deepEqual(f.sessions.get(result.sessionId).deriveMessages().map(m=>m.content[0].text),['question 1','answer 1']);
+ assert.equal(JSON.stringify(f.source.snapshotEvents()),before);
+ await assert.rejects(createBranch(f.ctx,{...payload,action:'edit-user',messageSeq:messageSeq+1,text:'revised question'}),/其他分支/);
+});
 test('host preserves source bytes, current full permission state and selected model',async()=>{
  const f=fixture();const before=JSON.stringify(f.source.snapshotEvents());
  const result=await createBranch(f.ctx,payload);const child=f.sessions.get(result.sessionId);

@@ -11,6 +11,7 @@ import {
   findUserActionSeat,
   turnAssistantText,
   turnUserNodeKey,
+  turnUserSeq,
   turnUserText,
 } from './tree.js'
 
@@ -200,7 +201,7 @@ function MessageNode({ node, currentId, openSession, createBranch, openBranch, g
     ? currentId
     : node.terminalSessionIds.at(-1) ?? node.sessionIds.at(-1)
   const [editing, setEditing] = useState(false)
-  const mutation = useBranchMutation({ sessionId: targetSession, turn: node.turn, createBranch, openBranch, t })
+  const mutation = useBranchMutation({ sessionId: targetSession, turn: node.turn, messageSeq: node.messageSeqs[targetSession], createBranch, openBranch, t })
   const role = t(node.role === 'user' ? 'message.user' : 'message.assistant')
   const text = node.text === '' ? t('message.nonText') : node.text
   const actionKey = node.action === 'edit-user'
@@ -416,7 +417,7 @@ function useBranchNavigation(loadNavigation, sessionId, turn, role, running) {
   return all?.[role]?.[turn] ?? null
 }
 
-function useBranchMutation({ sessionId, turn, createBranch, openBranch, t }) {
+function useBranchMutation({ sessionId, turn, messageSeq, createBranch, openBranch, t }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const abort = useRef(null)
@@ -433,6 +434,7 @@ function useBranchMutation({ sessionId, turn, createBranch, openBranch, t }) {
         sessionId,
         action,
         turn,
+        ...(action === 'edit-user' && messageSeq !== undefined ? { messageSeq } : {}),
         ...(text === undefined ? {} : { text }),
         ...(modelSelection === undefined ? {} : { modelSelection }),
       }, controller.signal)
@@ -516,12 +518,13 @@ export function UserBranchActions({ matched, turn: turnOwner, sessionId, useSess
   const turn = matched?.turn ?? turnOwner?.turn
   const userText = useChat(chat => turnUserText({ chat }, turn))
   const userNodeKey = useChat(chat => turnUserNodeKey({ chat }, turn))
+  const messageSeq = useChat(chat => turnUserSeq({ chat }, turn))
   const running = useSession(snapshot => snapshot.running)
   const navigation = useBranchNavigation(loadNavigation, sessionId, turn, 'user', running)
   const [seat, setSeat] = useState(null)
   const [editorSeat, setEditorSeat] = useState(null)
   const [editing, setEditing] = useState(false)
-  const mutation = useBranchMutation({ sessionId, turn, createBranch, openBranch, t })
+  const mutation = useBranchMutation({ sessionId, turn, messageSeq, createBranch, openBranch, t })
   useEffect(() => {
     setSeat(findUserActionSeat(document, userNodeKey))
     setEditorSeat(findMessageEditSeat(document, userNodeKey))

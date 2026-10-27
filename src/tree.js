@@ -50,6 +50,12 @@ export function turnUserNodeKey(snapshot, turn) {
   }
 }
 
+/** Persisted event identity of the prompt shown by the inline editor. */
+export function turnUserSeq(snapshot, turn) {
+  const key = turnUserNodeKey(snapshot, turn)
+  return snapshot.chat.nodes.get(key)?.data.seq
+}
+
 function assistantMessageNode(snapshot, messageId) {
   for (const node of snapshot.chat.nodes.values()) {
     if (node.kind === 'assistant-step' && node.data.finalNode?.messageId === messageId) {

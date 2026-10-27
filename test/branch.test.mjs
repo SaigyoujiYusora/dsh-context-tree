@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Session,appendPluginRecord,foldSurface,deriveEventMessage } from '@deepseek-ai/dsh-session';
 import { planBranch,editorProjections,LEGACY_EDIT_RECORD,EDIT_RECORD,BRANCH_RECORD,displayMessages } from '../lib/branch-core.js';
 import { buildBranchNavigation } from '../lib/navigation.js';
+import { turnUserSeq } from '../src/tree.js';
 const projections=editorProjections();
 function user(id,text){return{id,role:'user',source:{kind:'user'},content:[{type:'text',text}]};}
 function answer(id,text){return{id,role:'assistant',source:{kind:'model',provider:'test',model:'fixture'},content:[{type:'text',text}]};}
@@ -41,6 +42,40 @@ test('editing prompt changes the new attempt only',()=>{
  assert.deepEqual(texts(child(p)),['Q1','A1']);
  assert.equal(p.prompts[0].content[0].text,'Q2 revised');
  assert.ok(texts(s).includes('Q2'));
+});
+
+test('editing the opening prompt excludes same-turn steering and its late edits',()=>{
+ const s=Session.create('session-steering',undefined,undefined,0,projections);
+ s.append('turn/start',{turn:1});
+ s.append('user/message',user('past','earlier context'),{surfaceOp:'append'});
+ s.append('turn/end',{turn:1,reason:{kind:'completed'}});
+ s.append('turn/start',{turn:2});
+ const opening=s.append('user/message',{...user('opening','original prompt'),content:[{type:'text',text:'original prompt'},{type:'image',url:'https://example.invalid/fixture.png'}]},{surfaceOp:'append'});
+ s.append('step/start',{turn:2,step:1});
+ s.append('assistant/message',{turn:2,step:1,message:answer('old-work','old work'),stream:[]},{surfaceOp:'append'});
+ s.append('step/end',{turn:2,step:1});
+ const steering=s.append('user/message',user('steer1','later steering one'),{surfaceOp:'append'});
+ s.append('user/message',user('steer2','later steering two'),{surfaceOp:'append'});
+ s.append('turn/end',{turn:2,reason:{kind:'completed'}});
+ s.append('user/message',{...user('later-edit','edited later steering'),source:{kind:'user',editedBy:'dsh-edit-turn'}},{surfaceOp:{op:'replace',startSeq:steering.seq,endSeq:steering.seq},sourceEventSeqs:[steering.seq]});
+ const replacement=s.append('user/message',{...user('opening-edit','previously edited prompt'),source:{kind:'user',editedBy:'dsh-edit-turn'},content:[{type:'text',text:'previously edited prompt'},{type:'image',url:'https://example.invalid/fixture.png'}]},{surfaceOp:{op:'replace',startSeq:opening.seq,endSeq:opening.seq},sourceEventSeqs:[opening.seq]});
+ const before=JSON.stringify(s.snapshotEvents());
+ for(const messageSeq of [undefined,opening.seq,replacement.seq]){
+  const p=planBranch(s.snapshotEvents(),{turn:2,action:'edit-user',messageSeq,text:'revised prompt'},projections);
+  assert.deepEqual(texts(child(p)),['earlier context']);
+  assert.equal(p.prompts.length,1);
+  assert.deepEqual(p.prompts[0].content,[{type:'text',text:'revised prompt'},{type:'image',url:'https://example.invalid/fixture.png'}]);
+  assert.ok(!JSON.stringify(p.seed).includes('later steering'));
+ }
+ assert.throws(()=>planBranch(s.snapshotEvents(),{turn:2,action:'edit-user',messageSeq:steering.seq,text:'wrong target'},projections),error=>error.code==='prompt-target');
+ assert.equal(JSON.stringify(s.snapshotEvents()),before);
+ const snapshot={chat:{locations:{getTurn:()=>['opening','steering']},nodes:new Map([
+  ['opening',{kind:'user',location:{kind:'turn',turn:{turn:2}},data:{seq:replacement.seq}}],
+  ['steering',{kind:'user',location:{kind:'step',turn:{turn:2}},data:{seq:steering.seq}}],
+ ])}};
+ assert.equal(turnUserSeq(snapshot,2),replacement.seq);
+ const navigation=buildBranchNavigation(new Map([[s.id,{header:s.header,events:s.snapshotEvents(),messages:displayMessages(s.snapshotEvents())}]]),s.id);
+ assert.equal(navigation.tree.children[0].children[0].messageSeqs[s.id],opening.seq);
 });
 test('editing an answer creates a closed child through that floor, excludes old tail',()=>{
  const s=fixture();const p=planBranch(s.snapshotEvents(),{turn:2,action:'edit-assistant',text:'A2 revised'},projections);
